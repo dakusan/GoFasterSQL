@@ -17,16 +17,20 @@ Both ScanRow(s) (plural and singular) functions only accept sql.Rows and not sql
 
 The SRErr() and *.ScanRowWErr*() helper functions exist to help emulate sql.Row.Scan error handling functionality.
 
-GoFasterSQL supports the following types, including: typedef derivatives, nested use in structures (including pointers to the types), and nullable derivatives (see nulltypes package).
+GoFasterSQL supports:
+  - typedef derivatives of scalar types
+  - nullable derivatives of scalar types (NullType[TYPE])
+  - structures with nested supported types and other structures (members can also be pointers)
+
+The scalar types are:
   - string, []byte, sql.RawBytes (RawBytes converted to []byte for singular RowScan functions)
   - bool
   - int, int8, int16, int32, int64
   - uint, uint8, uint16, uint32, uint64
   - float32, float64
   - time.Time (also accepts unix timestamps ; does not currently accept typedef derivatives)
-  - struct
 
-Optimization Information:
+Optimization information:
   - The sole instance of reflection following a ModelStruct call occurs during the ScanRow(s) functions, where a verification ensures that the outPointers types align with the types specified in ModelStruct (the *NC versions [DoScan(runCheck=false)] skip this check).
   - Creating a StructModel from a single structure requires much less overhead than the alternatives.
   - Nested struct pointers add a very tiny bit of extra overhead over nested non-pointers.
@@ -36,18 +40,18 @@ Example Usage:
 
 	type cardCatalogIdentifier uint
 	type book struct {
-		name string
-		cardCatalogID cardCatalogIdentifier
-		student
-		l *loans
+		name          string                //Scalar type
+		cardCatalogID cardCatalogIdentifier //Typedef derivative of scalar type
+		student                             //Nested structure
+		l             *loans                //Nested structure (pointer)
 	}
 	type student struct {
 		currentBorrower string
 		currentBorrowerId int
 	}
 	type loans struct {
-		libraryID int8
-		loanData []byte
+		libraryID *int8               //Scalar type (pointer)
+		loanData  gf.NullType[[]byte] //Nullable derivative of scalar type
 	}
 
 	var db *sql.DB
@@ -59,7 +63,7 @@ Example Usage:
 	msr := ms.CreateReader()
 	rows, _ := db.Query("SELECT * FROM books")
 	for rows.Next() {
-		temp := book{l:new(loans)}
+		temp := book{l: &loans{libraryID: new(int8)}}
 		if err := msr.ScanRows(rows, &temp); err != nil {
 			panic(err)
 		}
@@ -73,7 +77,7 @@ So:
 
 is equivalent to:
 
-	rows.Scan(&temp.name, &temp.cardCatalogID, &temp.currentBorrower, &temp.currentBorrowerId, &temp.l.libraryID, &temp.l.loanData)
+	rows.Scan(&temp.name, &temp.cardCatalogID, &temp.currentBorrower, &temp.currentBorrowerId, temp.l.libraryID, &temp.l.loanData.Val)
 
 and is much faster to boot!
 

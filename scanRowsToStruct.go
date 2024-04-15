@@ -111,6 +111,8 @@ const (
 	rrtNamed    rowReaderType = 1 << (iota - 1) //RowReaderNamed (matches against select query column names instead of indexes)
 )
 
+var _, isRawBytesFixed = reflect.TypeOf(sql.Rows{}).FieldByName("raw") //https://github.com/golang/go/commit/c23579f031ecd09bf37c644723b33736dffa8b92
+
 // CreateReader creates a RowReader from the StructModel
 func (sm StructModel) CreateReader() *RowReader {
 	rb := make([]sql.RawBytes, len(sm.fields))
@@ -172,8 +174,10 @@ func (rr *RowReader) DoScan(rows *sql.Rows, outPointers []any, err error, runChe
 	}
 
 	//Nil out all values in rawBytes in case sql attempts to read a non []byte into them (security vulnerability bug in golang sql code)
-	for i := range rr.rawBytesArr {
-		rr.rawBytesArr[i] = nil
+	if !isRawBytesFixed {
+		for i := range rr.rawBytesArr {
+			rr.rawBytesArr[i] = nil
+		}
 	}
 
 	//Handle extensions

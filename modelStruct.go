@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/dakusan/gofastersql/nulltypes"
 	"reflect"
 	"strconv"
 	"strings"
@@ -45,7 +44,7 @@ type structFieldFlags uint8
 const (
 	sffNoFlags    structFieldFlags = 0
 	sffIsRawBytes structFieldFlags = 1 << (iota - 1) //If the member is a RawBytes type
-	sffIsNullable                                    //If the member is a nulltypes struct
+	sffIsNullable                                    //If the member is a NullType struct
 )
 
 // Store structs for future lookups
@@ -57,21 +56,21 @@ var remLock sync.RWMutex
 type converterFunc func(in []byte, p upt) error
 
 var nullTypeStructConverters = map[reflect.Type]converterFunc{
-	reflect.TypeOf(nulltypes.NullType[uint8]{}):        cvNU8,
-	reflect.TypeOf(nulltypes.NullType[uint16]{}):       cvNU16,
-	reflect.TypeOf(nulltypes.NullType[uint32]{}):       cvNU32,
-	reflect.TypeOf(nulltypes.NullType[uint64]{}):       cvNU64,
-	reflect.TypeOf(nulltypes.NullType[int8]{}):         cvNI8,
-	reflect.TypeOf(nulltypes.NullType[int16]{}):        cvNI16,
-	reflect.TypeOf(nulltypes.NullType[int32]{}):        cvNI32,
-	reflect.TypeOf(nulltypes.NullType[int64]{}):        cvNI64,
-	reflect.TypeOf(nulltypes.NullType[float32]{}):      cvNF32,
-	reflect.TypeOf(nulltypes.NullType[float64]{}):      cvNF64,
-	reflect.TypeOf(nulltypes.NullType[string]{}):       cvNS,
-	reflect.TypeOf(nulltypes.NullType[sql.RawBytes]{}): cvNRB,
-	reflect.TypeOf(nulltypes.NullType[[]byte]{}):       cvNBA,
-	reflect.TypeOf(nulltypes.NullType[bool]{}):         cvNB,
-	reflect.TypeOf(nulltypes.NullType[time.Time]{}):    cvNT,
+	reflect.TypeOf(NullType[uint8]{}):        cvNU8,
+	reflect.TypeOf(NullType[uint16]{}):       cvNU16,
+	reflect.TypeOf(NullType[uint32]{}):       cvNU32,
+	reflect.TypeOf(NullType[uint64]{}):       cvNU64,
+	reflect.TypeOf(NullType[int8]{}):         cvNI8,
+	reflect.TypeOf(NullType[int16]{}):        cvNI16,
+	reflect.TypeOf(NullType[int32]{}):        cvNI32,
+	reflect.TypeOf(NullType[int64]{}):        cvNI64,
+	reflect.TypeOf(NullType[float32]{}):      cvNF32,
+	reflect.TypeOf(NullType[float64]{}):      cvNF64,
+	reflect.TypeOf(NullType[string]{}):       cvNS,
+	reflect.TypeOf(NullType[sql.RawBytes]{}): cvNRB,
+	reflect.TypeOf(NullType[[]byte]{}):       cvNBA,
+	reflect.TypeOf(NullType[bool]{}):         cvNB,
+	reflect.TypeOf(NullType[time.Time]{}):    cvNT,
 }
 var scalarConverters = make([]converterFunc, reflect.UnsafePointer) //UnsafePointer is the final enum of reflect.Kind
 func init() {
@@ -103,10 +102,10 @@ func init() {
 
 var lookupType = struct{ time, nullInherit, byteArray, rawBytes, nullRawBytes reflect.Type }{
 	reflect.TypeOf(time.Time{}),
-	reflect.TypeOf(nulltypes.NullInherit{}),
+	reflect.TypeOf(NullInherit{}),
 	reflect.TypeOf([]byte{}),
 	reflect.TypeOf(sql.RawBytes{}),
-	reflect.TypeOf(nulltypes.NullType[sql.RawBytes]{}),
+	reflect.TypeOf(NullType[sql.RawBytes]{}),
 }
 
 //------------------------------Create StructModels-----------------------------

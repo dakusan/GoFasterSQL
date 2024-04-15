@@ -1,12 +1,12 @@
-// Package nulltypes contains all the scalar types as nullable
-package nulltypes
+// Scalar types as nullable
+
+package gofastersql
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
-	"unsafe"
 )
 
 // NullInherit is the structure that all other Null structures inherit from
@@ -68,9 +68,4 @@ func (t NullType[T]) MarshalJSON() ([]byte, error) {
 	//JSON-ify a string
 	newStr, _ := json.Marshal(outStr)
 	return newStr, nil
-}
-
-// b2s (Unsafe!) converts a byte slice to a string
-func b2s(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b))
 }

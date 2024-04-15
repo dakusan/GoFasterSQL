@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	gf "github.com/dakusan/gofastersql"
-	"github.com/dakusan/gofastersql/nulltypes"
 	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 	"strconv"
@@ -387,7 +386,7 @@ func testReadRow(t *testing.T, tx *sql.Tx) {
 	})
 
 	t.Run("ScanRow 1 null scalar", func(t *testing.T) {
-		var a nulltypes.NullType[int64]
+		var a gf.NullType[int64]
 		failOnErrT(t, fErr(0, gf.ScanRowWErr(gf.SRErr(tx.Query(`SELECT 6`)), &a)))
 		if a.Val != 6 {
 			t.Fatal(fmt.Sprintf("%s!=%d", a, 6))
@@ -488,23 +487,23 @@ func TestNulls(t *testing.T) {
 	//Run test for nullable scalar types
 	t.Run("Null scalars", func(t *testing.T) {
 		type TestStructNull struct {
-			U8  nulltypes.NullType[uint8]
-			U16 nulltypes.NullType[uint16]
-			U32 nulltypes.NullType[uint32]
-			U64 nulltypes.NullType[uint64]
-			I8  nulltypes.NullType[int8]
-			I16 nulltypes.NullType[int16]
-			I32 nulltypes.NullType[int32]
-			I64 nulltypes.NullType[int64]
-			F32 nulltypes.NullType[float32]
-			F64 *nulltypes.NullType[float64]
-			S   nulltypes.NullType[string]
-			BA  nulltypes.NullType[[]byte]
-			RB  nulltypes.NullType[sql.RawBytes]
-			B   nulltypes.NullType[bool]
-			T   nulltypes.NullType[time.Time]
+			U8  gf.NullType[uint8]
+			U16 gf.NullType[uint16]
+			U32 gf.NullType[uint32]
+			U64 gf.NullType[uint64]
+			I8  gf.NullType[int8]
+			I16 gf.NullType[int16]
+			I32 gf.NullType[int32]
+			I64 gf.NullType[int64]
+			F32 gf.NullType[float32]
+			F64 *gf.NullType[float64]
+			S   gf.NullType[string]
+			BA  gf.NullType[[]byte]
+			RB  gf.NullType[sql.RawBytes]
+			B   gf.NullType[bool]
+			T   gf.NullType[time.Time]
 		}
-		tsn := TestStructNull{F64: new(nulltypes.NullType[float64])}
+		tsn := TestStructNull{F64: new(gf.NullType[float64])}
 		tsnToString := func() string {
 			list := []any{tsn.U8, tsn.U16, tsn.U32, tsn.U64, tsn.I8, tsn.I16, tsn.I32, tsn.I64, tsn.F32, tsn.F64, tsn.S, tsn.BA, tsn.RB, tsn.B, tsn.T}
 			s := make([]string, len(list))
@@ -546,9 +545,9 @@ func TestRawBytes(t *testing.T) {
 		I   int64
 		B   []byte
 		RB  sql.RawBytes
-		INV nulltypes.NullType[int64]
-		BN  nulltypes.NullType[[]byte]
-		RBN nulltypes.NullType[sql.RawBytes]
+		INV gf.NullType[int64]
+		BN  gf.NullType[[]byte]
+		RBN gf.NullType[sql.RawBytes]
 		T2V T2
 	}
 

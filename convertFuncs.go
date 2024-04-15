@@ -4,7 +4,6 @@ package gofastersql
 
 import (
 	"database/sql"
-	nt "github.com/dakusan/gofastersql/nulltypes"
 	"strconv"
 	"time"
 	"unsafe"
@@ -45,7 +44,7 @@ func convFloat[T float32 | float64](in []byte, p upt, bits int) error {
 	return nil
 }
 func null(in []byte, p upt) []byte {
-	(*nt.NullInherit)(p).IsNull = in == nil
+	(*NullInherit)(p).IsNull = in == nil
 	return in
 }
 
@@ -141,7 +140,7 @@ func convTime(in []byte, p upt) error {
 // ---------------Conversion function for all NULLABLE scalar types--------------
 //I had to get a bit aggressive with name shortening methods below to keep everything on 1 line
 
-type nti[T nt.NullableTypes] nt.NullType[T]
+type nti[T NullableTypes] NullType[T]
 
 func cvNU8(b []byte, p upt) error  { return convUint8(null(b, p), upt(&(*nti[uint8])(p).Val)) }
 func cvNU16(b []byte, p upt) error { return convUint16(null(b, p), upt(&(*nti[uint16])(p).Val)) }

@@ -24,7 +24,7 @@ The `SRErr()` and `*.ScanRowWErr*()` helper functions exist to help emulate sql.
 ### Type support:
 GoFasterSQL supports:
   - typedef derivatives of scalar types
-  - nullable derivatives of scalar types (<code>nulltypes.NullType[**TYPE**]</code>)
+  - nullable derivatives of scalar types (<code>NullType[**TYPE**]</code>)
   - **structures with nested supported types and other structures (members can also be pointers)**
 
 The scalar types are:
@@ -50,7 +50,6 @@ package main
 import (
 	"database/sql"
 	gf "github.com/dakusan/gofastersql"
-	"github.com/dakusan/gofastersql/nulltypes"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -66,8 +65,8 @@ type student struct {
 	currentBorrowerId int
 }
 type loans struct {
-	libraryID *int8                      //Scalar type (pointer)
-	loanData  nulltypes.NullType[[]byte] //Nullable derivative of scalar type
+	libraryID *int8               //Scalar type (pointer)
+	loanData  gf.NullType[[]byte] //Nullable derivative of scalar type
 }
 
 func main() {
@@ -147,7 +146,7 @@ if err := gf.ScanRowNamedWErr(gf.SRErr(db.Query("SELECT * FROM books")), &myBook
 Reading a single row directly into multiple structs
 ```go
 type foo struct { bar, baz int }
-type moo struct { cow, calf nulltypes.NullType[int64] }
+type moo struct { cow, calf gf.NullType[int64] }
 var fooVar foo
 var mooVar moo
 

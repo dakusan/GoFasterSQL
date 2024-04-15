@@ -57,21 +57,21 @@ var remLock sync.RWMutex
 type converterFunc func(in []byte, p upt) error
 
 var nullTypeStructConverters = map[reflect.Type]converterFunc{
-	reflect.TypeOf(nulltypes.NullUint8{}):     cvNU8,
-	reflect.TypeOf(nulltypes.NullUint16{}):    cvNU16,
-	reflect.TypeOf(nulltypes.NullUint32{}):    cvNU32,
-	reflect.TypeOf(nulltypes.NullUint64{}):    cvNU64,
-	reflect.TypeOf(nulltypes.NullInt8{}):      cvNI8,
-	reflect.TypeOf(nulltypes.NullInt16{}):     cvNI16,
-	reflect.TypeOf(nulltypes.NullInt32{}):     cvNI32,
-	reflect.TypeOf(nulltypes.NullInt64{}):     cvNI64,
-	reflect.TypeOf(nulltypes.NullFloat32{}):   cvNF32,
-	reflect.TypeOf(nulltypes.NullFloat64{}):   cvNF64,
-	reflect.TypeOf(nulltypes.NullString{}):    cvNS,
-	reflect.TypeOf(nulltypes.NullRawBytes{}):  cvNRB,
-	reflect.TypeOf(nulltypes.NullByteArray{}): cvNBA,
-	reflect.TypeOf(nulltypes.NullBool{}):      cvNB,
-	reflect.TypeOf(nulltypes.NullTime{}):      cvNT,
+	reflect.TypeOf(nulltypes.NullType[uint8]{}):        cvNU8,
+	reflect.TypeOf(nulltypes.NullType[uint16]{}):       cvNU16,
+	reflect.TypeOf(nulltypes.NullType[uint32]{}):       cvNU32,
+	reflect.TypeOf(nulltypes.NullType[uint64]{}):       cvNU64,
+	reflect.TypeOf(nulltypes.NullType[int8]{}):         cvNI8,
+	reflect.TypeOf(nulltypes.NullType[int16]{}):        cvNI16,
+	reflect.TypeOf(nulltypes.NullType[int32]{}):        cvNI32,
+	reflect.TypeOf(nulltypes.NullType[int64]{}):        cvNI64,
+	reflect.TypeOf(nulltypes.NullType[float32]{}):      cvNF32,
+	reflect.TypeOf(nulltypes.NullType[float64]{}):      cvNF64,
+	reflect.TypeOf(nulltypes.NullType[string]{}):       cvNS,
+	reflect.TypeOf(nulltypes.NullType[sql.RawBytes]{}): cvNRB,
+	reflect.TypeOf(nulltypes.NullType[[]byte]{}):       cvNBA,
+	reflect.TypeOf(nulltypes.NullType[bool]{}):         cvNB,
+	reflect.TypeOf(nulltypes.NullType[time.Time]{}):    cvNT,
 }
 var scalarConverters = make([]converterFunc, reflect.UnsafePointer) //UnsafePointer is the final enum of reflect.Kind
 func init() {
@@ -106,7 +106,7 @@ var lookupType = struct{ time, nullInherit, byteArray, rawBytes, nullRawBytes re
 	reflect.TypeOf(nulltypes.NullInherit{}),
 	reflect.TypeOf([]byte{}),
 	reflect.TypeOf(sql.RawBytes{}),
-	reflect.TypeOf(nulltypes.NullRawBytes{}),
+	reflect.TypeOf(nulltypes.NullType[sql.RawBytes]{}),
 }
 
 //------------------------------Create StructModels-----------------------------

@@ -386,7 +386,7 @@ func testReadRow(t *testing.T, tx *sql.Tx) {
 	})
 
 	t.Run("ScanRow 1 null scalar", func(t *testing.T) {
-		var a nulltypes.NullInt64
+		var a nulltypes.NullType[int64]
 		failOnErrT(t, fErr(0, gf.ScanRowWErr(gf.SRErr(tx.Query(`SELECT 6`)), &a)))
 		if a.Val != 6 {
 			t.Fatal(fmt.Sprintf("%s!=%d", a, 6))
@@ -487,23 +487,23 @@ func TestNulls(t *testing.T) {
 	//Run test for nullable scalar types
 	t.Run("Null scalars", func(t *testing.T) {
 		type TestStructNull struct {
-			U8  nulltypes.NullUint8
-			U16 nulltypes.NullUint16
-			U32 nulltypes.NullUint32
-			U64 nulltypes.NullUint64
-			I8  nulltypes.NullInt8
-			I16 nulltypes.NullInt16
-			I32 nulltypes.NullInt32
-			I64 nulltypes.NullInt64
-			F32 nulltypes.NullFloat32
-			F64 *nulltypes.NullFloat64
-			S   nulltypes.NullString
-			BA  nulltypes.NullByteArray
-			RB  nulltypes.NullRawBytes
-			B   nulltypes.NullBool
-			T   nulltypes.NullTime
+			U8  nulltypes.NullType[uint8]
+			U16 nulltypes.NullType[uint16]
+			U32 nulltypes.NullType[uint32]
+			U64 nulltypes.NullType[uint64]
+			I8  nulltypes.NullType[int8]
+			I16 nulltypes.NullType[int16]
+			I32 nulltypes.NullType[int32]
+			I64 nulltypes.NullType[int64]
+			F32 nulltypes.NullType[float32]
+			F64 *nulltypes.NullType[float64]
+			S   nulltypes.NullType[string]
+			BA  nulltypes.NullType[[]byte]
+			RB  nulltypes.NullType[sql.RawBytes]
+			B   nulltypes.NullType[bool]
+			T   nulltypes.NullType[time.Time]
 		}
-		tsn := TestStructNull{F64: new(nulltypes.NullFloat64)}
+		tsn := TestStructNull{F64: new(nulltypes.NullType[float64])}
 		tsnToString := func() string {
 			list := []any{tsn.U8, tsn.U16, tsn.U32, tsn.U64, tsn.I8, tsn.I16, tsn.I32, tsn.I64, tsn.F32, tsn.F64, tsn.S, tsn.BA, tsn.RB, tsn.B, tsn.T}
 			s := make([]string, len(list))
@@ -513,14 +513,22 @@ func TestNulls(t *testing.T) {
 			return strings.Join(s, ",")
 		}
 
-		failOnErrT(t, fErr(0, gf.ScanRowWErr(gf.SRErr(tx.Query(`SELECT i1+1, i2, i1+2, i2, i1+3, i2, i1+4, i2, i1+5, i2, i1+6, i2, i1+7, i2, '2001-02-03 05:06:07.21' FROM goTest2`)), &tsn)))
-		if tsnToString() != `6,NULL,7,NULL,8,NULL,9,NULL,10,NULL,11,NULL,12,NULL,2001-02-03 05:06:07.21` {
-			t.Fatal("Nulled scalar marshal did not match: " + tsnToString())
+		failOnErrT(t, fErr(0, gf.ScanRowWErr(gf.SRErr(tx.Query(`SELECT i1+1, i2, i1+2, i2, i1+3, i2, i1+4, i2, i1+5, i2, 'str\t\"\'\n-end', i2, 'rb\t\"\'\n-end', i2, '2001-02-03 05:06:07.21' FROM goTest2`)), &tsn)))
+		if tsnToString() != "6,NULL,7,NULL,8,NULL,9,NULL,10,NULL,str\t\"'\n-end,NULL,rb\t\"'\n-end,NULL,2001-02-03 05:06:07.21" {
+			t.Fatal("Nulled scalar string marshal did not match: " + tsnToString())
+		}
+		expected1 := `{"U8":6,"U16":null,"U32":7,"U64":null,"I8":8,"I16":null,"I32":9,"I64":null,"F32":10,"F64":null,"S":"str\t\"'\n-end","BA":null,"RB":"rb\t\"'\n-end","B":null,"T":"2001-02-03T05:06:07.210Z"}`
+		if js, _ := json.Marshal(tsn); string(js) != expected1 {
+			t.Fatal("Nulled scalar json marshal did not match: " + expected1)
 		}
 
-		failOnErrT(t, fErr(0, gf.ScanRowWErr(gf.SRErr(tx.Query(`SELECT i2, i1+11, i2, i1+12, i2, i1+13, i2, i1+14, i2, i1+15, i2, i1+16, i2, i1+17, i2 FROM goTest2`)), &tsn)))
-		if tsnToString() != `NULL,16,NULL,17,NULL,18,NULL,19,NULL,20,NULL,21,NULL,false,NULL` {
-			t.Fatal("Nulled scalar marshal #2 did not match: " + tsnToString())
+		failOnErrT(t, fErr(0, gf.ScanRowWErr(gf.SRErr(tx.Query(`SELECT i2, i1+11, i2, i1+12, i2, i1+13, i2, i1+14, i2, i1+15, i2, 'ba\t\"\'\n-end', i2, i1+17, i2 FROM goTest2`)), &tsn)))
+		if tsnToString() != "NULL,16,NULL,17,NULL,18,NULL,19,NULL,20,NULL,ba\t\"'\n-end,NULL,false,NULL" {
+			t.Fatal("Nulled scalar string marshal #2 did not match: " + tsnToString())
+		}
+		expected2 := `{"U8":null,"U16":16,"U32":null,"U64":17,"I8":null,"I16":18,"I32":null,"I64":19,"F32":null,"F64":20,"S":null,"BA":"ba\t\"'\n-end","RB":null,"B":false,"T":null}`
+		if js, _ := json.Marshal(tsn); string(js) != expected2 {
+			t.Fatal("Nulled scalar json marshal #2 did not match: " + expected2)
 		}
 	})
 }
@@ -537,9 +545,9 @@ func TestRawBytes(t *testing.T) {
 		I   int64
 		B   []byte
 		RB  sql.RawBytes
-		INV nulltypes.NullInt64
-		BN  nulltypes.NullByteArray
-		RBN nulltypes.NullRawBytes
+		INV nulltypes.NullType[int64]
+		BN  nulltypes.NullType[[]byte]
+		RBN nulltypes.NullType[sql.RawBytes]
 		T2V T2
 	}
 

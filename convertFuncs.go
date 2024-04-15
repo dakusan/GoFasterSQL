@@ -141,18 +141,20 @@ func convTime(in []byte, p upt) error {
 // ---------------Conversion function for all NULLABLE scalar types--------------
 //I had to get a bit aggressive with name shortening methods below to keep everything on 1 line
 
-func cvNU8(b []byte, p upt) error  { return convUint8(null(b, p), upt(&(*nt.NullUint8)(p).Val)) }
-func cvNU16(b []byte, p upt) error { return convUint16(null(b, p), upt(&(*nt.NullUint16)(p).Val)) }
-func cvNU32(b []byte, p upt) error { return convUint32(null(b, p), upt(&(*nt.NullUint32)(p).Val)) }
-func cvNU64(b []byte, p upt) error { return convUint64(null(b, p), upt(&(*nt.NullUint64)(p).Val)) }
-func cvNI8(b []byte, p upt) error  { return convInt8(null(b, p), upt(&(*nt.NullInt8)(p).Val)) }
-func cvNI16(b []byte, p upt) error { return convInt16(null(b, p), upt(&(*nt.NullInt16)(p).Val)) }
-func cvNI32(b []byte, p upt) error { return convInt32(null(b, p), upt(&(*nt.NullInt32)(p).Val)) }
-func cvNI64(b []byte, p upt) error { return convInt64(null(b, p), upt(&(*nt.NullInt64)(p).Val)) }
-func cvNF32(b []byte, p upt) error { return convFloat32(null(b, p), upt(&(*nt.NullFloat32)(p).Val)) }
-func cvNF64(b []byte, p upt) error { return convFloat64(null(b, p), upt(&(*nt.NullFloat64)(p).Val)) }
-func cvNS(b []byte, p upt) error   { return convString(null(b, p), upt(&(*nt.NullString)(p).Val)) }
-func cvNRB(b []byte, p upt) error  { return convRawBytes(null(b, p), upt(&(*nt.NullRawBytes)(p).Val)) }
-func cvNBA(b []byte, p upt) error  { return convByteArray(null(b, p), upt(&(*nt.NullByteArray)(p).Val)) }
-func cvNB(b []byte, p upt) error   { return convBool(null(b, p), upt(&(*nt.NullBool)(p).Val)) }
-func cvNT(b []byte, p upt) error   { return convTime(null(b, p), upt(&(*nt.NullTime)(p).Val)) }
+type nti[T nt.NullableTypes] nt.NullType[T]
+
+func cvNU8(b []byte, p upt) error  { return convUint8(null(b, p), upt(&(*nti[uint8])(p).Val)) }
+func cvNU16(b []byte, p upt) error { return convUint16(null(b, p), upt(&(*nti[uint16])(p).Val)) }
+func cvNU32(b []byte, p upt) error { return convUint32(null(b, p), upt(&(*nti[uint32])(p).Val)) }
+func cvNU64(b []byte, p upt) error { return convUint64(null(b, p), upt(&(*nti[uint64])(p).Val)) }
+func cvNI8(b []byte, p upt) error  { return convInt8(null(b, p), upt(&(*nti[int8])(p).Val)) }
+func cvNI16(b []byte, p upt) error { return convInt16(null(b, p), upt(&(*nti[int16])(p).Val)) }
+func cvNI32(b []byte, p upt) error { return convInt32(null(b, p), upt(&(*nti[int32])(p).Val)) }
+func cvNI64(b []byte, p upt) error { return convInt64(null(b, p), upt(&(*nti[int64])(p).Val)) }
+func cvNF32(b []byte, p upt) error { return convFloat32(null(b, p), upt(&(*nti[float32])(p).Val)) }
+func cvNF64(b []byte, p upt) error { return convFloat64(null(b, p), upt(&(*nti[float64])(p).Val)) }
+func cvNS(b []byte, p upt) error   { return convString(null(b, p), upt(&(*nti[string])(p).Val)) }
+func cvNRB(b []byte, p upt) error  { return convRawBytes(null(b, p), upt(&(*nti[sql.RawBytes])(p).Val)) }
+func cvNBA(b []byte, p upt) error  { return convByteArray(null(b, p), upt(&(*nti[[]byte])(p).Val)) }
+func cvNB(b []byte, p upt) error   { return convBool(null(b, p), upt(&(*nti[bool])(p).Val)) }
+func cvNT(b []byte, p upt) error   { return convTime(null(b, p), upt(&(*nti[time.Time])(p).Val)) }

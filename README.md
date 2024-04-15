@@ -22,14 +22,18 @@ Both `ScanRow(s)` (plural and singular) functions only accept `sql.Rows` and not
 The `SRErr()` and `*.ScanRowWErr*()` helper functions exist to help emulate sql.Row.Scan error handling functionality. See [example #3](#Example-3) below.
 
 ### Type support:
-GoFasterSQL supports the following types, including: typedef derivatives, nested use in structures (including pointers to the types), and nullable derivatives (see nulltypes package).
+GoFasterSQL supports:
+  - typedef derivatives of scalar types
+  - nullable derivatives of scalar types (<code>nulltypes.NullType[**TYPE**]</code>)
+  - **structures with nested supported types and other structures (members can also be pointers)**
+
+The scalar types are:
   - `string`, `[]byte`, `sql.RawBytes` *(RawBytes converted to []byte for singular RowScan functions)*
   - `bool`
   - `int`, `int8`, `int16`, `int32`, `int64`
   - `uint`, `uint8`, `uint16`, `uint32`, `uint64`
   - `float32`, `float64`
   - `time.Time` *(also accepts unix timestamps ; does not currently accept typedef derivatives)*
-  - `struct`
 
 GoFasterSQL is available under the same style of BSD license as the Go language, which can be found in the LICENSE file.
 
@@ -46,28 +50,29 @@ package main
 import (
 	"database/sql"
 	gf "github.com/dakusan/gofastersql"
+	"github.com/dakusan/gofastersql/nulltypes"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type cardCatalogIdentifier uint
 type book struct {
-	name string
-	cardCatalogID cardCatalogIdentifier
-	student
-	l *loans
+	name          string                //Scalar type
+	cardCatalogID cardCatalogIdentifier //Typedef derivative of scalar type
+	student                             //Nested structure
+	l             *loans                //Nested structure (pointer)
 }
 type student struct {
-	currentBorrower string
+	currentBorrower   string
 	currentBorrowerId int
 }
 type loans struct {
-	libraryID int8
-	loanData []byte
+	libraryID *int8                      //Scalar type (pointer)
+	loanData  nulltypes.NullType[[]byte] //Nullable derivative of scalar type
 }
 
 func main() {
 	var db *sql.DB
-	//Log into db and create books table here: CREATE TABLE books (name varchar(50), cardCatalogID int, currentBorrower varchar(50), currentBorrowerId int, libraryID tinyint, loanData varchar(50)) ENGINE=MEMORY
+	//Log into db and create books table here: CREATE TABLE books (name varchar(50), cardCatalogID int, currentBorrower varchar(50), currentBorrowerId int, libraryID tinyint, loanData varchar(50) NULL) ENGINE=MEMORY
 
 	var b []book
 	ms, err := gf.ModelStruct(book{})
@@ -77,7 +82,7 @@ func main() {
 	msr := ms.CreateReader()
 	rows, _ := db.Query("SELECT * FROM books")
 	for rows.Next() {
-		temp := book{l:new(loans)}
+		temp := book{l: &loans{libraryID: new(int8)}}
 		if err := msr.ScanRows(rows, &temp); err != nil {
 			panic(err)
 		}
@@ -89,7 +94,7 @@ func main() {
 So:<br>
 `msr.ScanRows(rows, &temp)`<br>
 is equivalent to:<br>
-`rows.Scan(&temp.name, &temp.cardCatalogID, &temp.currentBorrower, &temp.currentBorrowerId, &temp.l.libraryID, &temp.l.loanData)`<br>
+`rows.Scan(&temp.name, &temp.cardCatalogID, &temp.currentBorrower, &temp.currentBorrowerId, temp.l.libraryID, &temp.l.loanData.Val)`<br>
 and is much faster to boot!
 
 It is also equivalent to (but a little faster than): <code>ModelStruct(<b>...</b>).CreateReader().ScanRows(rows, &temp.name, &temp.cardCatalogID, &temp.student, temp.l)</code><br>
@@ -108,7 +113,7 @@ msr := ms.CreateReaderNamed()
 //Param# names required due to (anonymous) top level scalars
 rows, _ := db.Query("SELECT name AS Param3, cardCatalogID AS Param2, currentBorrower, currentBorrowerId, libraryID, loanData FROM books")
 for rows.Next() {
-	temp := book{l:new(loans)}
+	temp := book{l: &loans{libraryID: new(int8)}}
 	if err := msr.ScanRows(rows, temp.l, &temp.student, &temp.cardCatalogID, &temp.name); err != nil {
 		panic(err)
 	}
@@ -120,7 +125,7 @@ _ = rows.Close()
 If you were reading just 1 row this could be simplified to:
 ```go
 db *sql.DB
-myBook := book{l: new(loans)}
+myBook := book{l: &loans{libraryID: new(int8)}}
 if err := gf.ScanRowNamedWErr(
 	gf.SRErr(db.Query("SELECT name AS Param3, cardCatalogID AS Param2, currentBorrower, currentBorrowerId, libraryID, loanData FROM books")),
 	myBook.l, &myBook.student, &myBook.cardCatalogID, &myBook.name,
@@ -132,7 +137,7 @@ if err := gf.ScanRowNamedWErr(
 or most simply:
 ```go
 db *sql.DB
-myBook := book{l: new(loans)}
+myBook := book{l: &loans{libraryID: new(int8)}}
 if err := gf.ScanRowNamedWErr(gf.SRErr(db.Query("SELECT * FROM books")), &myBook); err != nil {
 	panic(err)
 }
@@ -142,7 +147,7 @@ if err := gf.ScanRowNamedWErr(gf.SRErr(db.Query("SELECT * FROM books")), &myBook
 Reading a single row directly into multiple structs
 ```go
 type foo struct { bar, baz int }
-type moo struct { cow, calf nulltypes.NullInt64 }
+type moo struct { cow, calf nulltypes.NullType[int64] }
 var fooVar foo
 var mooVar moo
 
@@ -164,6 +169,7 @@ Result:
 
 > [!warning]
 > If you are scanning a lot of rows it is recommended to use a `RowReader` instead of `gofastersql.ScanRow` as it bypasses a mutex read lock and a few allocations.
+>
 > In some cases `gofastersql.ScanRow` may even be slower than the native `sql.Row.Scan()` method. What speeds this library up so much is the preprocessing done before the ScanRow(s) functions are called and a lot of that is lost in `gofastersql.ScanRow` and especially in `gofastersql.ScanRowMulti`.
 
 # Installation

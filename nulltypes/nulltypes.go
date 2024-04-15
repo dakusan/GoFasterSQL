@@ -3,6 +3,7 @@ package nulltypes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 	"unsafe"
@@ -12,122 +13,61 @@ import (
 type NullInherit struct {
 	IsNull bool
 }
-type NullUint8 struct {
-	NullInherit
-	Val uint8
-}
-type NullUint16 struct {
-	NullInherit
-	Val uint16
-}
-type NullUint32 struct {
-	NullInherit
-	Val uint32
-}
-type NullUint64 struct {
-	NullInherit
-	Val uint64
-}
-type NullInt8 struct {
-	NullInherit
-	Val int8
-}
-type NullInt16 struct {
-	NullInherit
-	Val int16
-}
-type NullInt32 struct {
-	NullInherit
-	Val int32
-}
-type NullInt64 struct {
-	NullInherit
-	Val int64
-}
-type NullFloat32 struct {
-	NullInherit
-	Val float32
-}
-type NullFloat64 struct {
-	NullInherit
-	Val float64
-}
-type NullBool struct {
-	NullInherit
-	Val bool
-}
-type NullString struct {
-	NullInherit
-	Val string
-}
-type NullByteArray struct {
-	NullInherit
-	Val []byte
-}
-type NullRawBytes struct {
-	NullInherit
-	Val sql.RawBytes
-}
-type NullTime struct {
-	NullInherit
-	Val time.Time
+
+// NullableTypes is the list of types that can be nulled
+type NullableTypes interface {
+	uint8 | uint16 | uint32 | uint64 | int8 | int16 | int32 | int64 | float32 | float64 | bool | string | []byte | sql.RawBytes | time.Time
 }
 
-func (t NullUint8) String() string     { return getStr(t.IsNull, t.Val) }
-func (t NullUint16) String() string    { return getStr(t.IsNull, t.Val) }
-func (t NullUint32) String() string    { return getStr(t.IsNull, t.Val) }
-func (t NullUint64) String() string    { return getStr(t.IsNull, t.Val) }
-func (t NullInt8) String() string      { return getStr(t.IsNull, t.Val) }
-func (t NullInt16) String() string     { return getStr(t.IsNull, t.Val) }
-func (t NullInt32) String() string     { return getStr(t.IsNull, t.Val) }
-func (t NullInt64) String() string     { return getStr(t.IsNull, t.Val) }
-func (t NullFloat32) String() string   { return getStr(t.IsNull, t.Val) }
-func (t NullFloat64) String() string   { return getStr(t.IsNull, t.Val) }
-func (t NullBool) String() string      { return getStr(t.IsNull, t.Val) }
-func (t NullString) String() string    { return getStr(t.IsNull, t.Val) }
-func (t NullByteArray) String() string { return getStr(t.IsNull, b2s(t.Val)) }
-func (t NullRawBytes) String() string  { return getStr(t.IsNull, b2s(t.Val)) }
-func (t NullTime) String() string      { return getStr(t.IsNull, t.Val.Format(`2006-01-02 15:04:05.99999`)) }
+// NullType is a generic nulled type. Inherits from NullInherit and contains the typed value
+type NullType[T NullableTypes] struct {
+	NullInherit
+	Val T
+}
 
-func getStr[T any](isNull bool, val T) string {
-	if isNull {
+// String converts a NullType into a user readable string. The Time format is 2006-01-02 15:04:05.99999.
+func (t NullType[T]) String() string {
+	if t.IsNull {
 		return "NULL"
-	} else {
-		return fmt.Sprintf("%v", val)
+	}
+
+	switch v := any(t.Val).(type) {
+	case string:
+		return v
+	case []byte:
+		return b2s(v)
+	case sql.RawBytes:
+		return b2s(v)
+	case time.Time:
+		return v.Format(`2006-01-02 15:04:05.99999`)
+	default:
+		return fmt.Sprintf("%v", v)
 	}
 }
 
-const nullTimeFmt = `2006-01-02T15:04:05.000Z`
-
-func (t NullUint8) MarshalJSON() ([]byte, error)     { return makeJS(t.IsNull, t.Val) }
-func (t NullUint16) MarshalJSON() ([]byte, error)    { return makeJS(t.IsNull, t.Val) }
-func (t NullUint32) MarshalJSON() ([]byte, error)    { return makeJS(t.IsNull, t.Val) }
-func (t NullUint64) MarshalJSON() ([]byte, error)    { return makeJS(t.IsNull, t.Val) }
-func (t NullInt8) MarshalJSON() ([]byte, error)      { return makeJS(t.IsNull, t.Val) }
-func (t NullInt16) MarshalJSON() ([]byte, error)     { return makeJS(t.IsNull, t.Val) }
-func (t NullInt32) MarshalJSON() ([]byte, error)     { return makeJS(t.IsNull, t.Val) }
-func (t NullInt64) MarshalJSON() ([]byte, error)     { return makeJS(t.IsNull, t.Val) }
-func (t NullFloat32) MarshalJSON() ([]byte, error)   { return makeJS(t.IsNull, t.Val) }
-func (t NullFloat64) MarshalJSON() ([]byte, error)   { return makeJS(t.IsNull, t.Val) }
-func (t NullBool) MarshalJSON() ([]byte, error)      { return makeJS(t.IsNull, t.Val) }
-func (t NullString) MarshalJSON() ([]byte, error)    { return qtMakeJS(t.IsNull, t.Val) }
-func (t NullByteArray) MarshalJSON() ([]byte, error) { return qtMakeJS(t.IsNull, b2s(t.Val)) }
-func (t NullRawBytes) MarshalJSON() ([]byte, error)  { return qtMakeJS(t.IsNull, b2s(t.Val)) }
-func (t NullTime) MarshalJSON() ([]byte, error)      { return qtMakeJS(t.IsNull, t.Val.Format(nullTimeFmt)) }
-
-func makeJS[T any](isNull bool, val T) ([]byte, error) {
-	if isNull {
+// MarshalJSON converts a NullType into JSON. The Time format is "2006-01-02T15:04:05.000Z".
+func (t NullType[T]) MarshalJSON() ([]byte, error) {
+	if t.IsNull {
 		return []byte("null"), nil
-	} else {
-		return []byte(fmt.Sprintf("%v", val)), nil
 	}
-}
-func qtMakeJS(isNull bool, val string) ([]byte, error) {
-	if isNull {
-		return []byte("null"), nil
-	} else {
-		return []byte(`"` + val + `"`), nil
+
+	var outStr string
+	switch v := any(t.Val).(type) {
+	case time.Time:
+		return []byte(v.Format(`"2006-01-02T15:04:05.000Z"`)), nil
+	case string:
+		outStr = v
+	case []byte:
+		outStr = b2s(v)
+	case sql.RawBytes:
+		outStr = b2s(v)
+	default:
+		return []byte(fmt.Sprintf("%v", v)), nil
 	}
+
+	//JSON-ify a string
+	newStr, _ := json.Marshal(outStr)
+	return newStr, nil
 }
 
 // b2s (Unsafe!) converts a byte slice to a string

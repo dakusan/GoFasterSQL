@@ -8,6 +8,7 @@ import (
 	gf "github.com/dakusan/gofastersql"
 	"github.com/dakusan/gofastersql/nulltypes"
 	_ "github.com/go-sql-driver/mysql"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -648,10 +649,13 @@ func TestNamed(t *testing.T) {
 			t.Fatal("Structure json marshal #1 did not match: " + string(str))
 		}
 
-		t3v2 := t3{T2V: new(t2)}
-		failOnErrT(t, fErr(0, rrn.ScanRows(rows, &t3v2)))
-		if str := failOnErrT(t, fErr(json.Marshal(t3v2))); string(str) != expectedResult {
-			t.Fatal("Structure json marshal #2 did not match: " + string(str))
+		//This test cannot be run on go 1.21+
+		if _, exists := reflect.TypeOf(sql.Rows{}).FieldByName("closemuScanHold"); !exists {
+			t3v2 := t3{T2V: new(t2)}
+			failOnErrT(t, fErr(0, rrn.ScanRows(rows, &t3v2)))
+			if str := failOnErrT(t, fErr(json.Marshal(t3v2))); string(str) != expectedResult {
+				t.Fatal("Structure json marshal #2 did not match: " + string(str))
+			}
 		}
 	})
 
